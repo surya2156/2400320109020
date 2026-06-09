@@ -1,7 +1,22 @@
 import { useEffect, useState } from "react";
-import { Log } from "../../logging_middleware/src/logger";
+import { createLogger } from "../../logging_middleware/src/logger";
 
 type Status = "idle" | "loading" | "success" | "error";
+
+const env = import.meta.env as Record<string, string | undefined>;
+
+const logger = createLogger({
+  registerData: {
+    email: env.VITE_EVAL_EMAIL ?? "surya2156@example.com",
+    name: env.VITE_EVAL_NAME ?? "Surya",
+    rollNo: env.VITE_EVAL_ROLL_NO ?? "2400320109020",
+    mobileNo: env.VITE_EVAL_MOBILE_NO ?? "0000000000",
+    githubUsername: env.VITE_EVAL_GITHUB_USERNAME ?? "surya2156",
+    githubLink: env.VITE_EVAL_GITHUB_LINK ?? "https://github.com/surya2156/2400320109020.git",
+    accessCode: env.VITE_EVAL_ACCESS_CODE ?? "240032",
+    source: "react-notification-app",
+  },
+});
 
 const fakeNetworkAction = async (shouldFail: boolean): Promise<string> => {
   await new Promise((resolve) => setTimeout(resolve, 600));
@@ -21,12 +36,14 @@ export default function App() {
       setStatus("loading");
       setMessage("Initializing notification panel...");
       try {
-        await Log("frontend", "info", "page", "Notification panel initialized");
+        await logger.log("frontend", "debug", "page", "App mount started");
+        await logger.log("frontend", "info", "auth", "Registering client and requesting auth token");
+        await logger.log("frontend", "info", "page", "Notification panel initialized");
         setStatus("success");
         setMessage("Notification panel is ready.");
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown initialization error.";
-        await Log("frontend", "error", "component", errorMessage);
+        await logger.log("frontend", "error", "component", `Initialization failed: ${errorMessage}`);
         setStatus("error");
         setMessage("Initialization failed.");
         setDetail(errorMessage);
@@ -37,17 +54,20 @@ export default function App() {
   }, []);
 
   const handleAction = async (shouldFail: boolean) => {
+    const actionLabel = shouldFail ? "failure" : "success";
     setStatus("loading");
     setDetail("Waiting for simulated response...");
+    await logger.log("frontend", "debug", "component", `User clicked ${actionLabel} action button`);
+
     try {
       const result = await fakeNetworkAction(shouldFail);
-      await Log("frontend", "info", "page", "User triggered successful action");
+      await logger.log("frontend", "info", "api", `Simulated API request succeeded for ${actionLabel} action`);
       setStatus("success");
       setMessage("Success");
       setDetail(result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      await Log("frontend", "error", "component", errorMessage);
+      await logger.log("frontend", "warn", "api", `Simulated API request failed: ${errorMessage}`);
       setStatus("error");
       setMessage("Failure");
       setDetail(errorMessage);
